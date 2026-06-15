@@ -1,0 +1,35 @@
+# --- LaTeX build artifacts ---
+*.aux
+*.bbl
+*.blg
+*.bcf
+*.fls
+*.fdb_latexmk
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.run.xml
+*.synctex.gz
+*.synctex(busy)
+*.nav
+*.snm
+*.vrb
+*.idx
+*.ilg
+*.ind
+*.brf
+
+# Compiled PDFs at the repo root (Overleaf builds its own).
+# NOTE: figures/*.pdf stay tracked because these only match the root.
+/main.pdf
+/overview.pdf
+
+# --- macOS / editor junk ---
+.DS_Store
+*~
+.*.swp
+
+# --- Personal working notes (kept out of the shared repo by default) ---
+instructions.md
