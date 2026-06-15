@@ -1,0 +1,119 @@
+%% Beginning of file 'sample7.tex'
+%%
+%% Version 7. Created January 2025. 
+%%
+%% AASTeX v7 calls the following external packages:
+%% times, hyperref, ifthen, hyphens, longtable, xcolor, 
+%% bookmarks, array, rotating, ulem, and lineno 
+%%
+%% RevTeX is no longer used in AASTeX v7.
+
+%% Initialize document formatting
+\documentclass[twocolumn,astrosymb,tighten,twocolappendix,longbib,trackchanges]{aastex7} %linenumbers
+\usepackage{mathrsfs}
+\usepackage{subcaption}
+\usepackage{nccmath,gensymb} % for ceqn, degree
+\usepackage{xspace}
+\usepackage{hyperref}
+
+\makeatletter
+\setlength{\@fptop}{0pt}
+\setlength{\@fpsep}{8pt}
+\setlength{\@fpbot}{0pt}
+\makeatother
+
+\newcommand{\vdag}{(v)^\dagger}
+\newcommand\aastex{AAS\TeX}
+\newcommand\latex{La\TeX}
+
+\newcommand{\Question}[1]{{\color{orange}\MakeUppercase{#1}}}
+\newcommand{\ToDo}[1]{{\color{red}\MakeUppercase{#1}}}
+
+%% Use this command to indicate a subdirectory where figures are located.
+\graphicspath{{./}{figures/}}
+
+\begin{document}
+
+\title{High redshift analogues with Foundation Models}
+
+\author[0000-0002-8896-6496, gname=Christian Kragh, sname=Jespersen]{Christian Kragh Jespersen}
+\altaffiliation{Equal Contribution} %this renders twice in the footnote space
+\affiliation{Department of Astrophysical Sciences, Princeton University, Princeton, NJ 08544 USA}
+\email[show]{ckragh@princeton.edu} 
+
+
+\correspondingauthor{Menelaos~Raptis \& Christian~Kragh~Jespersen}
+
+%% To Dos
+
+
+
+\begin{abstract}
+This will be a fun project!
+\end{abstract}
+
+%% https://astrothesaurus.org
+%% You can use the \uat command to link your UAT concepts back its source.
+\keywords{\uat{High-redshift galaxies}{734} --- \uat{Galaxy evolution}{594} --- \uat{Galaxy spectroscopy}{2171} --- \uat{Astroinformatics}{78} --- \uat{Outlier detection}{1934}}
+
+% explain DIB electronic character expectation
+% [Thermal line on lit compilation of DIBs]
+\section{Introduction} \label{sec:intro}
+
+
+\section{Conclusion} \label{sec:conc}
+
+A conclusion
+
+\section{Code and Data Availability} \label{sec:dataavail}
+
+Add your GitHub
+
+\begin{acknowledgments}
+%% People
+C.K.J. acknowledges Marielle Côté-Gendreau's assistance in the formulation and presentation of our work. 
+
+%% Grants
+C.K.J. acknowledges support by the Schmidt Sciences under grant 922.
+%% HPC
+We acknowledge the support by Center for High-Performance Computing staff Brian Haymore, Anita Orendt, and Martin Cuma at the University of Utah. The author are also pleased to acknowledge that the work reported on in this paper was substantially performed using the Princeton Research Computing resources at Princeton University which is consortium of groups led by the Princeton Institute for Computational Science and Engineering (PICSciE) and Office of Information Technology's Research Computing.
+
+%% Standard SDSS-V Acknowledgement
+Funding for the Sloan Digital Sky Survey V has been provided by the Alfred P. Sloan Foundation, the Heising-Simons Foundation, the National Science Foundation, and the Participating Institutions. SDSS acknowledges support and resources from the Center for High-Performance Computing at the University of Utah. SDSS telescopes are located at Apache Point Observatory, funded by the Astrophysical Research Consortium and operated by New Mexico State University, and at Las Campanas Observatory, operated by the Carnegie Institution for Science. The SDSS web site is \url{www.sdss.org}.
+
+SDSS is managed by the Astrophysical Research Consortium for the Participating Institutions of the SDSS Collaboration, including the Carnegie Institution for Science, Chilean National Time Allocation Committee (CNTAC) ratified researchers, Caltech, the Gotham Participation Group, Harvard University, Heidelberg University, The Flatiron Institute, The Johns Hopkins University, L'Ecole polytechnique f\'{e}d\'{e}rale de Lausanne (EPFL), Leibniz-Institut f\"{u}r Astrophysik Potsdam (AIP), Max-Planck-Institut f\"{u}r Astronomie (MPIA Heidelberg), Max-Planck-Institut f\"{u}r Extraterrestrische Physik (MPE), Nanjing University, National Astronomical Observatories of China (NAOC), New Mexico State University, The Ohio State University, Pennsylvania State University, Smithsonian Astrophysical Observatory, Space Telescope Science Institute (STScI), the Stellar Astrophysics Participation Group, Universidad Nacional Aut\'{o}noma de M\'{e}xico, University of Arizona, University of Colorado Boulder, University of Illinois at Urbana-Champaign, University of Toronto, University of Utah, University of Virginia, Yale University, and Yunnan University.
+
+\end{acknowledgments}
+
+%% Authors can use the Contributor Role Taxonomy (CRediT) at
+%% https://credit.niso.org
+%%\begin{contribution}
+
+%%Here we use the \href{https://credit.niso.org/}{Contributor Roles Taxonomy (CRediT)} system to list the roles and contributions of the authors.
+%%\textbf{Conceptualization}: CKJ, AKS \textbf{Data curation}: AKS \textbf{Investigation}: CKJ, AKS \textbf{Methodology}: CKJ, AKS \textbf{Resources}: CKJ, AKS \textbf{Software}: CKJ, AKS \textbf{Validation}: CKJ, AKS \textbf{Visualization}: CKJ, AKS \textbf{Writing – original draft}: CKJ, AKS \textbf{Writing – review \& editing}: CKJ, AKS
+
+%%\end{contribution}
+
+%% Individual instruments can be provided in 
+%% parentheses, after the keyword, but they are not verified.
+%%\facilities{Sloan (APOGEE), Du Pont (APOGEE)}
+
+% sit down with your notebook imports
+%%\software{Matplotlib \citep{matplotlib}, pandas \citep{pandas}, jupyter \citep{jupyter}, numpy \citep{numpy}, Julia \citep{bezanson2017julia}, FITSIO.jl \citep{Pence_2010_A_A}, HDF5.jl \citep{hdf5}, \pgopher \citep{Western2017_pgopher}, \texttt{emcee} \citep{emcee}}
+
+\bibliography{refs}{}
+\bibliographystyle{aasjournalv7}
+\clearpage
+\appendix
+
+% \section{Fitting profile or temperature derivative separately} \label{appsec:profile_or_dT_only}
+
+% We want to show how our posteriors work out with fits for either just the profile or just the temperature derivative. We should also discuss which major degeneracies are broken by adding in the temperature derivative.
+
+% I think the best way of doing this is probably with a single corner plot with both sets of contours on, and a direct combination of the two posterior distributions.
+
+
+\section{First appendix section}\label{appsec:app}
+
+
+\end{document}
