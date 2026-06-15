@@ -46,22 +46,7 @@
 %% To Dos
 
 \begin{abstract}
-This is an onboarding and planning document for an incoming graduate-student project at the
-intersection of galaxy astrophysics and machine learning. The scientific question is whether
-genuine low-redshift analogues of high-redshift galaxies exist, and if so, where in redshift and
-physical parameter space they cease to. Our strategy is to treat the latent space of the \aion
-foundation model, trained on $\gtrsim\!200$ million low-redshift observations from the Legacy
-Survey, HSC, SDSS, DESI, and Gaia \citep{Parker2025_AION_omnimodal}, as a high-dimensional reference
-for ``what a low-redshift galaxy looks like.'' We will encode JWST spectra (drawn from the DAWN JWST
-Archive reductions of PANORAMIC, JADES, and CEERS) into that latent space and ask whether each
-object is well described by the low-redshift manifold (an analogue plausibly exists) or is an
-outlier (no good analogue). Two complementary tools drive the analysis: anomaly/outlier scoring in
-the latent space \citep{Liang2023_outlier_detection} and nearest-neighbour similarity search
-\citep{Parker2025_AION_omnimodal}. The central methodological motivation is that matching galaxies
-along a handful of hand-picked dimensions does not guarantee that they are actually similar in
-everything else; a learned high-dimensional embedding lets us perform a far more complete match, if
-one exists at all. This document lays out the motivation, approach, strengths and worries,
-alternatives, a milestone-based timeline, and the open questions we should settle together.
+This is an onboarding and planning document for an incoming graduate-student project at the intersection of galaxy astrophysics and machine learning. The scientific question is whether genuine low-redshift analogues of high-redshift galaxies exist, and if so, where in redshift and physical parameter space they cease to. Our strategy is to treat the latent space of the \aion foundation model, trained on $\gtrsim\!200$ million low-redshift observations from the Legacy Survey, HSC, SDSS, DESI, and Gaia \citep{Parker2025_AION_omnimodal}, as a high-dimensional reference for ``what a low-redshift galaxy looks like.'' We will encode JWST spectra (drawn from the DAWN JWST Archive reductions of PANORAMIC, JADES, and CEERS) into that latent space and ask whether each object is well described by the low-redshift manifold (an analogue plausibly exists) or is an outlier (no good analogue). Two complementary tools drive the analysis: anomaly/outlier scoring in the latent space \citep{Liang2023_outlier_detection} and nearest-neighbour similarity search \citep{Parker2025_AION_omnimodal}. The central methodological motivation is that matching galaxies along a handful of hand-picked dimensions does not guarantee that they are actually similar in everything else; a learned high-dimensional embedding lets us perform a far more complete match, if one exists at all. This document lays out the motivation, approach, strengths and worries, alternatives, a milestone-based timeline, and the open questions we should settle together.
 \end{abstract}
 
 %% https://astrothesaurus.org
@@ -70,280 +55,115 @@ alternatives, a milestone-based timeline, and the open questions we should settl
 
 \section{Introduction: the analogue problem} \label{sec:intro}
 
-High-redshift galaxies are now observed in large numbers with JWST, down to remarkable detail in
-the rest-frame ultraviolet and optical \citep[e.g.][]{Hayes2025_highz_UV}. They are nonetheless
-faint, compact, and expensive to observe, and many of the diagnostics we apply to them were
-calibrated on nearby galaxies under very different physical conditions. A long-standing way around
-this is to find \emph{local analogues}: nearby galaxies that resemble high-redshift systems closely
-enough that we can study the same physics at high signal-to-noise and high spatial resolution, and
-use them to calibrate the tools we apply at high redshift.
+High-redshift galaxies are now observed in large numbers with JWST, down to remarkable detail in the rest-frame ultraviolet and optical \citep[e.g.][]{Hayes2025_highz_UV}. They are nonetheless faint, compact, and expensive to observe, and many of the diagnostics we apply to them were calibrated on nearby galaxies under very different physical conditions. A long-standing way around this is to find \emph{local analogues}: nearby galaxies that resemble high-redshift systems closely enough that we can study the same physics at high signal-to-noise and high spatial resolution, and use them to calibrate the tools we apply at high redshift.
 
-The standard approach to building analogue samples selects galaxies that match high-redshift
-systems along a small number of axes, for example position in the
-$[\mathrm{O\,III}]/\mathrm{H}\beta$ versus $[\mathrm{N\,II}]/\mathrm{H}\alpha$ (BPT) plane, specific
-star-formation rate, compactness, or UV continuum slope \citep{Bian2016_local_analogues}. This
-works, but it carries a built-in limitation that motivates the whole project: \textbf{matching
-along a handful of dimensions does not guarantee that two galaxies are actually similar in
-everything else.} Two galaxies can sit at the same point in the BPT diagram while differing in
-continuum shape, stellar populations, dust attenuation, kinematics, the rest of their emission-line
-inventory, and morphology. A few-parameter match is necessary but not sufficient for ``analogue.''
+The standard approach to building analogue samples selects galaxies that match high-redshift systems along a small number of axes, for example position in the $[\mathrm{O\,III}]/\mathrm{H}\beta$ versus $[\mathrm{N\,II}]/\mathrm{H}\alpha$ (BPT) plane, specific star-formation rate, compactness, or UV continuum slope \citep{Bian2016_local_analogues}. This works, but it carries a built-in limitation that motivates the whole project: \textbf{matching along a handful of dimensions does not guarantee that two galaxies are actually similar in everything else.} Two galaxies can sit at the same point in the BPT diagram while differing in continuum shape, stellar populations, dust attenuation, kinematics, the rest of their emission-line inventory, and morphology. A few-parameter match is necessary but not sufficient for ``analogue.''
 
-Our proposal is to replace the few-parameter cut with a learned, high-dimensional match. The \aion
-foundation model has been trained by self-supervision on more than 200 million low-redshift
-observations \citep{Parker2025_AION_omnimodal}; its latent space is, in effect, a compressed
-description of what low-redshift galaxies (and stars and quasars) look like across imaging,
-spectroscopy, and scalar measurements. If that latent space spans the space of normal low-redshift
-galaxies, then encoding a JWST spectrum and asking how well it fits the low-redshift manifold
-becomes a precise, high-dimensional version of the analogue question:
+Our proposal is to replace the few-parameter cut with a learned, high-dimensional match. The \aion foundation model has been trained by self-supervision on more than 200 million low-redshift observations \citep{Parker2025_AION_omnimodal}; its latent space is, in effect, a compressed description of what low-redshift galaxies (and stars and quasars) look like across imaging, spectroscopy, and scalar measurements. If that latent space spans the space of normal low-redshift galaxies, then encoding a JWST spectrum and asking how well it fits the low-redshift manifold becomes a precise, high-dimensional version of the analogue question:
 \begin{itemize}
-  \item if the JWST galaxy lands in a well-populated region of the manifold, a low-redshift
-        analogue plausibly exists, and similarity search will return the nearest candidates;
-  \item if it is an \emph{outlier}, in a region the low-redshift data never visit, then no good
-        low-redshift analogue exists, and the object's anomaly score and reconstruction residuals
-        indicate how it is different.
+  \item if the JWST galaxy lands in a well-populated region of the manifold, a low-redshift analogue plausibly exists, and similarity search will return the nearest candidates;
+  \item if it is an \emph{outlier}, in a region the low-redshift data never visit, then no good low-redshift analogue exists, and the object's anomaly score and reconstruction residuals indicate how it is different.
 \end{itemize}
-Two complementary tools implement this: anomaly/outlier scoring in the latent space, following the
-autoencoder-plus-normalising-flow recipe of \citet{Liang2023_outlier_detection} on DESI spectra, and
-nearest-neighbour similarity search, a capability \aion demonstrates directly
-\citep{Parker2025_AION_omnimodal}. The value of the embedding is that it constrains many learned
-dimensions at once (a more complete match than any hand-chosen cut), which lets us test whether
-complete analogues exist at all, and map where, in redshift and physical regime, the analogy breaks
-down.
+Two complementary tools implement this: anomaly/outlier scoring in the latent space, following the autoencoder-plus-normalising-flow recipe of \citet{Liang2023_outlier_detection} on DESI spectra, and nearest-neighbour similarity search, a capability \aion demonstrates directly \citep{Parker2025_AION_omnimodal}. The value of the embedding is that it constrains many learned dimensions at once (a more complete match than any hand-chosen cut), which lets us test whether complete analogues exist at all, and map where, in redshift and physical regime, the analogy breaks down.
 
 
 \section{The foundation-model approach} \label{sec:approach}
 
-\paragraph{A short primer (for the ML-newer reader).} A \emph{foundation model} is a single large
-network pretrained by self-supervision on a very large, heterogeneous dataset, producing a
-general-purpose numerical summary (an \emph{embedding} or \emph{latent vector}) for each input that
-can be reused for many downstream tasks without retraining. \aion is \emph{omnimodal}: it ingests
-images, spectra, and scalar quantities by first converting each modality into discrete \emph{tokens}
-with modality-specific tokenisers, then training a transformer with \emph{masked modelling}
-(predicting hidden tokens from visible ones) over the combined token sequence
-\citep{Parker2025_AION_omnimodal}. Once trained, the encoder is \emph{frozen}: we pass data through
-it and read off embeddings, with no gradient updates. A short glossary of these terms is in
-Appendix~\ref{appsec:glossary}, and the public tutorial notebook is the fastest way to build
-intuition.\footnote{\url{https://colab.research.google.com/github/PolymathicAI/AION/blob/main/notebooks/Tutorial.ipynb}; code and weights at \url{https://github.com/PolymathicAI/AION}.}
+\paragraph{A short primer (for the ML-newer reader).} A \emph{foundation model} is a single large network pretrained by self-supervision on a very large, heterogeneous dataset, producing a general-purpose numerical summary (an \emph{embedding} or \emph{latent vector}) for each input that can be reused for many downstream tasks without retraining. \aion is \emph{omnimodal}: it ingests images, spectra, and scalar quantities by first converting each modality into discrete \emph{tokens} with modality-specific tokenisers, then training a transformer with \emph{masked modelling} (predicting hidden tokens from visible ones) over the combined token sequence \citep{Parker2025_AION_omnimodal}. Once trained, the encoder is \emph{frozen}: we pass data through it and read off embeddings, with no gradient updates. A short glossary of these terms is in Appendix~\ref{appsec:glossary}, and the public tutorial notebook is the fastest way to build intuition.\footnote{\url{https://colab.research.google.com/github/PolymathicAI/AION/blob/main/notebooks/Tutorial.ipynb}; code and weights at \url{https://github.com/PolymathicAI/AION}.}
 
-\paragraph{Why JWST is the right test set.} \aion was pretrained on the Legacy Survey, HSC, SDSS,
-DESI, and Gaia, all low-redshift surveys, and \emph{not} on JWST \citep{Parker2025_AION_omnimodal}.
-JWST galaxies are therefore genuinely held out, which is exactly the setting in which an
-``in-distribution versus outlier'' question is meaningful and not circular.
+\paragraph{Why JWST is the right test set.} \aion was pretrained on the Legacy Survey, HSC, SDSS, DESI, and Gaia, all low-redshift surveys, and \emph{not} on JWST \citep{Parker2025_AION_omnimodal}. JWST galaxies are therefore genuinely held out, which is exactly the setting in which an ``in-distribution versus outlier'' question is meaningful and not circular.
 
 \paragraph{The pipeline.} The analysis proceeds in five steps:
 \begin{enumerate}
-  \item \textbf{Build the reference manifold.} Encode a clean low-redshift SDSS/DESI galaxy sample
-        with the frozen \aion encoder to obtain reference embeddings.
-  \item \textbf{Encode the high-redshift sample.} Map JWST spectra (DAWN JWST Archive reductions of
-        PANORAMIC, JADES, and CEERS) into the same latent space.\footnote{DAWN JWST Archive: \url{https://dawn-cph.github.io/dja/}.}
-  \item \textbf{Score outliers.} Fit a density model over the reference embeddings, a normalising
-        flow following \citet{Liang2023_outlier_detection}, and/or use simpler scores
-        ($k$-nearest-neighbour distance, Mahalanobis distance, decoder reconstruction error). Low
-        density or large distance means a poor analogue.
-  \item \textbf{Search for analogues.} For each JWST galaxy, retrieve its nearest low-redshift
-        neighbours in latent space; these are the candidate analogues.
-  \item \textbf{Decode for interpretability.} Reconstruct the input from its latent representation;
-        the residuals localise \emph{which} spectral features make an object anomalous.
+  \item \textbf{Build the reference manifold.} Encode a clean low-redshift SDSS/DESI galaxy sample with the frozen \aion encoder to obtain reference embeddings.
+  \item \textbf{Encode the high-redshift sample.} Map JWST spectra (DAWN JWST Archive reductions of PANORAMIC, JADES, and CEERS) into the same latent space.\footnote{DAWN JWST Archive: \url{https://dawn-cph.github.io/dja/}.}
+  \item \textbf{Score outliers.} Fit a density model over the reference embeddings, a normalising flow following \citet{Liang2023_outlier_detection}, and/or use simpler scores ($k$-nearest-neighbour distance, Mahalanobis distance, decoder reconstruction error). Low density or large distance means a poor analogue.
+  \item \textbf{Search for analogues.} For each JWST galaxy, retrieve its nearest low-redshift neighbours in latent space; these are the candidate analogues.
+  \item \textbf{Decode for interpretability.} Reconstruct the input from its latent representation; the residuals localise \emph{which} spectral features make an object anomalous.
 \end{enumerate}
 
 
 \section{Why a high-dimensional match matters} \label{sec:highdim}
 
-This is the conceptual core of the project, and it deserves to be stated precisely. Classical
-analogue selection fixes a few summary statistics and declares a match when they agree. But galaxies
-are not their summary statistics: agreement in $[\mathrm{O\,III}]/\mathrm{H}\beta$ and
-$[\mathrm{N\,II}]/\mathrm{H}\alpha$ says nothing, by itself, about the 4000\,\AA\ break, the higher
-Balmer series, the [S\,II] doublet, the UV slope, or the stellar continuum. The promise of a learned
-embedding is that it encodes a large number of correlated features simultaneously, so a small latent
-distance constrains the match along \emph{all} of those directions at once. We are explicitly
-leveraging high-dimensional representation learning to do a more complete match than any
-few-parameter cut can.
+This is the conceptual core of the project, and it deserves to be stated precisely. Classical analogue selection fixes a few summary statistics and declares a match when they agree. But galaxies are not their summary statistics: agreement in $[\mathrm{O\,III}]/\mathrm{H}\beta$ and $[\mathrm{N\,II}]/\mathrm{H}\alpha$ says nothing, by itself, about the 4000\,\AA\ break, the higher Balmer series, the [S\,II] doublet, the UV slope, or the stellar continuum. The promise of a learned embedding is that it encodes a large number of correlated features simultaneously, so a small latent distance constrains the match along \emph{all} of those directions at once. We are explicitly leveraging high-dimensional representation learning to do a more complete match than any few-parameter cut can.
 
-It is equally important to be clear about what this does \emph{not} buy us. A small latent distance
-guarantees similarity only in the features \aion has actually learned to represent, and that set is
-determined by its training data and its pretraining objective. So a high-dimensional match is:
+It is equally important to be clear about what this does \emph{not} buy us. A small latent distance guarantees similarity only in the features \aion has actually learned to represent, and that set is determined by its training data and its pretraining objective. So a high-dimensional match is:
 \begin{itemize}
-  \item \emph{more complete} than a few-parameter match, because it jointly constrains many
-        features rather than two or three; but
-  \item \emph{not} a guarantee of agreement in physical properties \aion never needed to encode
-        (for example, anything invisible in optical photometry or spectroscopy, or features so rare
-        in the training data that the model never had to represent them); and
-  \item \emph{only meaningful when the object is in-distribution enough to be embedded faithfully}
-        in the first place. For a true outlier, the ``nearest neighbour'' is merely the least-bad
-        projection onto a manifold that does not contain it.
+  \item \emph{more complete} than a few-parameter match, because it jointly constrains many features rather than two or three; but
+  \item \emph{not} a guarantee of agreement in physical properties \aion never needed to encode (for example, anything invisible in optical photometry or spectroscopy, or features so rare in the training data that the model never had to represent them); and
+  \item \emph{only meaningful when the object is in-distribution enough to be embedded faithfully} in the first place. For a true outlier, the ``nearest neighbour'' is merely the least-bad projection onto a manifold that does not contain it.
 \end{itemize}
-The honest framing of the project, then, is this: using the most complete match we can currently
-compute, do genuine analogues of high-redshift galaxies exist, and how large are the residual
-differences for the closest matches we find? Quantifying those residuals (latent distance versus
-agreement in independently measured physical properties) is itself one of the most interesting
-results the project can produce.
+The honest framing of the project, then, is this: using the most complete match we can currently compute, do genuine analogues of high-redshift galaxies exist, and how large are the residual differences for the closest matches we find? Quantifying those residuals (latent distance versus agreement in independently measured physical properties) is itself one of the most interesting results the project can produce.
 
 
 \section{Strengths of the approach} \label{sec:strengths}
 
 \begin{itemize}
-  \item \textbf{A principled, pre-built reference.} The low-redshift manifold is learned from
-        $\gtrsim\!200$M objects, far more than any hand-curated comparison sample, and is meant to
-        capture the natural distribution of normal galaxies.
-  \item \textbf{No training required.} The encoder is frozen and the weights are public, so the
-        pipeline is cheap to run, reproducible, and easy to share \citep{Parker2025_AION_omnimodal}.
-  \item \textbf{Multimodality.} \aion can match on spectra, imaging, and scalars jointly, enabling a
-        richer notion of ``analogue'' than spectra alone.
-  \item \textbf{Low methodological risk on the ML plumbing.} Both halves of the method
-        (density-based outlier scoring, \citealt{Liang2023_outlier_detection}, and similarity
-        retrieval, \citealt{Parker2025_AION_omnimodal}) are already demonstrated in the literature on
-        closely related data.
-  \item \textbf{A continuous, calibratable analogue score.} Rather than a binary ``analogue or
-        not,'' we get a graded score that we can track as a function of redshift and physical
-        regime to find where the analogy breaks down.
-  \item \textbf{Built-in interpretability.} Decoder reconstruction residuals point to the specific
-        features driving an object's anomaly, connecting back to physical diagnostics.
+  \item \textbf{A principled, pre-built reference.} The low-redshift manifold is learned from $\gtrsim\!200$M objects, far more than any hand-curated comparison sample, and is meant to capture the natural distribution of normal galaxies.
+  \item \textbf{No training required.} The encoder is frozen and the weights are public, so the pipeline is cheap to run, reproducible, and easy to share \citep{Parker2025_AION_omnimodal}.
+  \item \textbf{Multimodality.} \aion can match on spectra, imaging, and scalars jointly, enabling a richer notion of ``analogue'' than spectra alone.
+  \item \textbf{Low methodological risk on the ML plumbing.} Both halves of the method (density-based outlier scoring, \citealt{Liang2023_outlier_detection}, and similarity retrieval, \citealt{Parker2025_AION_omnimodal}) are already demonstrated in the literature on closely related data.
+  \item \textbf{A continuous, calibratable analogue score.} Rather than a binary ``analogue or not,'' we get a graded score that we can track as a function of redshift and physical regime to find where the analogy breaks down.
+  \item \textbf{Built-in interpretability.} Decoder reconstruction residuals point to the specific features driving an object's anomaly, connecting back to physical diagnostics.
 \end{itemize}
 
 
 \section{Worries, risks, and mitigations} \label{sec:worries}
 
 \begin{description}
-  \item[Domain gap, or out-of-distribution by construction.] JWST spectra differ from the training
-        data in instrument, wavelength coverage, spectral resolution, and noise; the galaxies
-        themselves are also genuinely different. A high outlier score could therefore reflect real
-        astrophysical novelty \emph{or} mere instrumental and preprocessing mismatch.
-        \textit{Mitigation:} build domain-shift controls. Take low-redshift SDSS/DESI spectra,
-        degrade and resample them to mimic JWST sampling, encode them, and confirm they remain
-        in-distribution, establishing the ``null'' outlier score expected from the instrument alone
-        before interpreting anything astrophysically.
-  \item[Input representation and tokeniser mismatch.] JWST spectra must be mapped onto the exact
-        input representation \aion's spectral tokeniser expects (wavelength grid, units, masking,
-        rest- versus observed-frame). Errors here can be mistaken for astrophysics.
-        \textit{Mitigation:} fix and document the preprocessing recipe early, validated against the
-        controls above.
-  \item[Redshift handling.] Unlike the redshift-invariant latent of
-        \citet{Liang2023_outlier_detection}, \aion is not guaranteed to be redshift-invariant; at
-        high redshift the rest-optical shifts into the NIR. \textit{Mitigation:} test de-redshifting
-        to a common rest frame and resampling onto the SDSS/DESI grid, and compare observed- versus
-        rest-frame encodings explicitly.
-  \item[Aperture and selection effects.] SDSS fibres, DESI fibres, and JWST slits and MSA shutters
-        sample different physical regions, and JWST samples are flux-limited towards extreme objects.
-        Apparent outlier-ness may reflect aperture or selection rather than intrinsic rarity.
-        \textit{Mitigation:} control for aperture where possible and characterise selection
-        functions when interpreting trends.
-  \item[The ``spanning'' assumption may fail.] Low-redshift surveys under-sample the low-mass,
-        low-metallicity, high-sSFR, compact systems that most resemble high-redshift galaxies, so
-        even genuine analogues could be rare or absent in the reference set. This is partly the
-        science and partly a confound. \textit{Mitigation:} quantify the reference density in the
-        relevant region and be explicit about whether ``no analogue'' means ``none in nature'' or
-        ``none in this survey.''
-  \item[Density estimation in high dimensions.] Normalising flows in a high-dimensional latent space
-        can be poorly calibrated. \textit{Mitigation:} cross-check the flow against simpler scores
-        ($k$-NN, Mahalanobis, reconstruction error) and report agreement.
-  \item[Decoder ``hallucination.''] A generative decoder may reconstruct an out-of-distribution
-        input as its nearest in-distribution pattern, which can conceal the anomaly we care about.
-        \textit{Mitigation:} treat reconstruction error as a diagnostic to be validated, not a
-        ground truth, and always confirm findings with independent physical measurements.
+  \item[Domain gap, or out-of-distribution by construction.] JWST spectra differ from the training data in instrument, wavelength coverage, spectral resolution, and noise; the galaxies themselves are also genuinely different. A high outlier score could therefore reflect real astrophysical novelty \emph{or} mere instrumental and preprocessing mismatch. \textit{Mitigation:} build domain-shift controls. Take low-redshift SDSS/DESI spectra, degrade and resample them to mimic JWST sampling, encode them, and confirm they remain in-distribution, establishing the ``null'' outlier score expected from the instrument alone before interpreting anything astrophysically.
+  \item[Input representation and tokeniser mismatch.] JWST spectra must be mapped onto the exact input representation \aion's spectral tokeniser expects (wavelength grid, units, masking, rest- versus observed-frame). Errors here can be mistaken for astrophysics. \textit{Mitigation:} fix and document the preprocessing recipe early, validated against the controls above.
+  \item[Redshift handling.] Unlike the redshift-invariant latent of \citet{Liang2023_outlier_detection}, \aion is not guaranteed to be redshift-invariant; at high redshift the rest-optical shifts into the NIR. \textit{Mitigation:} test de-redshifting to a common rest frame and resampling onto the SDSS/DESI grid, and compare observed- versus rest-frame encodings explicitly.
+  \item[Aperture and selection effects.] SDSS fibres, DESI fibres, and JWST slits and MSA shutters sample different physical regions, and JWST samples are flux-limited towards extreme objects. Apparent outlier-ness may reflect aperture or selection rather than intrinsic rarity. \textit{Mitigation:} control for aperture where possible and characterise selection functions when interpreting trends.
+  \item[The ``spanning'' assumption may fail.] Low-redshift surveys under-sample the low-mass, low-metallicity, high-sSFR, compact systems that most resemble high-redshift galaxies, so even genuine analogues could be rare or absent in the reference set. This is partly the science and partly a confound. \textit{Mitigation:} quantify the reference density in the relevant region and be explicit about whether ``no analogue'' means ``none in nature'' or ``none in this survey.''
+  \item[Density estimation in high dimensions.] Normalising flows in a high-dimensional latent space can be poorly calibrated. \textit{Mitigation:} cross-check the flow against simpler scores ($k$-NN, Mahalanobis, reconstruction error) and report agreement.
+  \item[Decoder ``hallucination.''] A generative decoder may reconstruct an out-of-distribution input as its nearest in-distribution pattern, which can conceal the anomaly we care about. \textit{Mitigation:} treat reconstruction error as a diagnostic to be validated, not a ground truth, and always confirm findings with independent physical measurements.
 \end{description}
 
 
 \section{Alternatives and complementary methods} \label{sec:alternatives}
 
-Several approaches are worth keeping in play, both as baselines and as cross-checks. A dedicated
-spectrum autoencoder plus normalising flow, as in \citet{Liang2023_outlier_detection}, is more
-controllable than a general foundation model and can be made redshift-invariant by design; it is the
-natural baseline for the outlier-scoring half. Contrastive image--spectrum embeddings (the AstroCLIP
-lineage that precedes \aion) offer an alternative representation to compare against. Classical
-physical-parameter matching, selecting analogues in the space of stellar mass, SFR, metallicity,
-age, and dust from SED or emission-line fitting following \citet{Bian2016_local_analogues}, is the
-interpretable, low-dimensional baseline that the high-dimensional match must be shown to improve on.
-On the ML side, it is worth comparing several out-of-distribution scores (normalising-flow density,
-$k$-NN distance, Mahalanobis distance, energy-based scores, reconstruction error) rather than
-trusting one. Two further options round out the list: a simulation-based expectation, asking whether
-analogues \emph{should} exist by encoding mock spectra from cosmological simulations; and, as a
-stretch, light domain adaptation or fine-tuning of \aion on JWST data, taking care to avoid
-circularity.
+Several approaches are worth keeping in play, both as baselines and as cross-checks. A dedicated spectrum autoencoder plus normalising flow, as in \citet{Liang2023_outlier_detection}, is more controllable than a general foundation model and can be made redshift-invariant by design; it is the natural baseline for the outlier-scoring half. Contrastive image--spectrum embeddings (the AstroCLIP lineage that precedes \aion) offer an alternative representation to compare against. Classical physical-parameter matching, selecting analogues in the space of stellar mass, SFR, metallicity, age, and dust from SED or emission-line fitting following \citet{Bian2016_local_analogues}, is the interpretable, low-dimensional baseline that the high-dimensional match must be shown to improve on. On the ML side, it is worth comparing several out-of-distribution scores (normalising-flow density, $k$-NN distance, Mahalanobis distance, energy-based scores, reconstruction error) rather than trusting one. Two further options round out the list: a simulation-based expectation, asking whether analogues \emph{should} exist by encoding mock spectra from cosmological simulations; and, as a stretch, light domain adaptation or fine-tuning of \aion on JWST data, taking care to avoid circularity.
 
 
 \section{Milestones and timeline} \label{sec:milestones}
 
-A roughly six-to-nine-month plan towards a publishable result, written for a student who is strong in
-astrophysics and newer to ML. ML ramp-up checkpoints are included in the early phases.
+A roughly six-to-nine-month plan towards a publishable result, written for a student who is strong in astrophysics and newer to ML. ML ramp-up checkpoints are included in the early phases.
 
-\paragraph{Phase 0: Onboarding and reproduction (weeks 0--3).} Read the core references
-(\citealt{Parker2025_AION_omnimodal}; \citealt{Liang2023_outlier_detection};
-\citealt{Bian2016_local_analogues}; \citealt{Hayes2025_highz_UV}); run the \aion tutorial notebook;
-load a frozen variant and encode/decode a handful of SDSS/DESI spectra; set up compute (Princeton
-Research Computing and the Della GPUs) and data access (DJA, SDSS, DESI). \emph{Deliverable:} a
-notebook reproducing \aion encode/decode on real spectra, plus a one-page write-up of how the
-spectral tokeniser and input format work.
+\paragraph{Phase 0: Onboarding and reproduction (weeks 0--3).} Read the core references (\citealt{Parker2025_AION_omnimodal}; \citealt{Liang2023_outlier_detection}; \citealt{Bian2016_local_analogues}; \citealt{Hayes2025_highz_UV}); run the \aion tutorial notebook; load a frozen variant and encode/decode a handful of SDSS/DESI spectra; set up compute (Princeton Research Computing and the Della GPUs) and data access (DJA, SDSS, DESI). \emph{Deliverable:} a notebook reproducing \aion encode/decode on real spectra, plus a one-page write-up of how the spectral tokeniser and input format work.
 
-\paragraph{Phase 1: Reference manifold and ML literacy (weeks 3--8).} Assemble a clean
-low-redshift reference sample and compute embeddings at scale; visualise the latent space
-(UMAP/PCA) coloured by known properties (redshift, mass, sSFR, line ratios) to confirm the structure
-is physical; implement and compare outlier scores (a normalising flow plus at least one simpler
-baseline). \emph{Deliverable:} a reference embedding catalogue and a validated, cross-checked
-outlier-scoring function. \emph{ML checkpoints:} a working understanding of tokenisation, embeddings,
-masked modelling, and normalising flows.
+\paragraph{Phase 1: Reference manifold and ML literacy (weeks 3--8).} Assemble a clean low-redshift reference sample and compute embeddings at scale; visualise the latent space (UMAP/PCA) coloured by known properties (redshift, mass, sSFR, line ratios) to confirm the structure is physical; implement and compare outlier scores (a normalising flow plus at least one simpler baseline). \emph{Deliverable:} a reference embedding catalogue and a validated, cross-checked outlier-scoring function. \emph{ML checkpoints:} a working understanding of tokenisation, embeddings, masked modelling, and normalising flows.
 
-\paragraph{Phase 2: Domain-gap calibration (weeks 8--14, with a go/no-go).} Build the
-degrade-and-resample controls; establish the JWST-to-\aion preprocessing recipe; quantify the
-outlier score expected from instrument and preprocessing alone. \emph{Deliverable:} a documented
-preprocessing pipeline and a quantified domain-shift baseline. \emph{Go/no-go:} confirm that outlier
-scores are astrophysically interpretable above the instrumental null before proceeding.
+\paragraph{Phase 2: Domain-gap calibration (weeks 8--14, with a go/no-go).} Build the degrade-and-resample controls; establish the JWST-to-\aion preprocessing recipe; quantify the outlier score expected from instrument and preprocessing alone. \emph{Deliverable:} a documented preprocessing pipeline and a quantified domain-shift baseline. \emph{Go/no-go:} confirm that outlier scores are astrophysically interpretable above the instrumental null before proceeding.
 
-\paragraph{Phase 3: Science: analogue existence versus redshift (weeks 14--22).} Encode the
-JWST/DJA sample across $z\gtrsim2$; compute outlier scores and nearest-neighbour analogues; map the
-trend of analogue-ness with redshift and physical regime to find where, if ever, it breaks down. For
-objects \emph{with} good analogues, validate the match against independently measured properties
-(line ratios following \citealt{Bian2016_local_analogues} and \citealt{Hayes2025_highz_UV}, masses,
-sizes, UV slope) and produce the key plot of latent distance versus physical-property agreement. For
-\emph{outliers}, characterise what makes them anomalous. \emph{Deliverable:} the
-outlier-score-versus-redshift result, an analogue catalogue, and validation plots.
+\paragraph{Phase 3: Science: analogue existence versus redshift (weeks 14--22).} Encode the JWST/DJA sample across $z\gtrsim2$; compute outlier scores and nearest-neighbour analogues; map the trend of analogue-ness with redshift and physical regime to find where, if ever, it breaks down. For objects \emph{with} good analogues, validate the match against independently measured properties (line ratios following \citealt{Bian2016_local_analogues} and \citealt{Hayes2025_highz_UV}, masses, sizes, UV slope) and produce the key plot of latent distance versus physical-property agreement. For \emph{outliers}, characterise what makes them anomalous. \emph{Deliverable:} the outlier-score-versus-redshift result, an analogue catalogue, and validation plots.
 
-\paragraph{Phase 4: Interpretation, robustness, write-up (weeks 22--30).} Compare the
-high-dimensional match against classical BPT-style selection \citep{Bian2016_local_analogues},
-ideally exhibiting a case where a few-parameter match agrees yet the full embedding reveals a real
-difference; test robustness to model size, score choice, and aperture and selection effects; draft
-the paper and release code and catalogue publicly (the Code and Data Availability section of
-\texttt{main.tex}). \emph{Deliverable:} a paper draft and a public repository.
+\paragraph{Phase 4: Interpretation, robustness, write-up (weeks 22--30).} Compare the high-dimensional match against classical BPT-style selection \citep{Bian2016_local_analogues}, ideally exhibiting a case where a few-parameter match agrees yet the full embedding reveals a real difference; test robustness to model size, score choice, and aperture and selection effects; draft the paper and release code and catalogue publicly (the Code and Data Availability section of \texttt{main.tex}). \emph{Deliverable:} a paper draft and a public repository.
 
-\paragraph{Stretch goals.} Add the imaging modality for a multimodal match; run domain-adaptation
-experiments; and compare against analogues drawn from cosmological simulations.
+\paragraph{Stretch goals.} Add the imaging modality for a multimodal match; run domain-adaptation experiments; and compare against analogues drawn from cosmological simulations.
 
 
 \section{Open questions to settle together} \label{sec:open}
 
 These are the decisions I would like us to make jointly, ideally at our first few meetings:
 \begin{enumerate}
-  \item \textbf{Sample definition.} Which exact DJA programmes and redshift bins do we start with,
-        and how do we define the low-redshift reference sample (selection, quality cuts, S/N floor)?
-  \item \textbf{Frame and preprocessing.} Do we encode in the observed or rest frame, and what is the
-        canonical resampling and masking recipe for JWST spectra?
-  \item \textbf{Modality scope.} Spectra only to begin with, or do we bring in imaging and
-        photometry for a multimodal match?
-  \item \textbf{Model variant.} Which \aion size (300M versus larger) given our compute budget, and
-        is there a measurable benefit to the larger models for this task?
-  \item \textbf{Defining ``analogue'' quantitatively.} A latent-distance threshold, an outlier-score
-        threshold, agreement in physical properties, or some combination?
-  \item \textbf{Success criteria.} What result would make this a paper: a clean
-        analogue-versus-redshift trend, a validated catalogue, a head-to-head win over BPT selection,
-        or a definitive ``no analogues beyond $\zsim X$''?
-  \item \textbf{Contaminants.} How do we handle AGN, mergers, and misclassified objects, which
-        \citet{Liang2023_outlier_detection} found dominate the outlier population?
-  \item \textbf{Compute and data volume.} What scale of reference sample and JWST sample is feasible,
-        and where do we store embeddings?
+  \item \textbf{Sample definition.} Which exact DJA programmes and redshift bins do we start with, and how do we define the low-redshift reference sample (selection, quality cuts, S/N floor)?
+  \item \textbf{Frame and preprocessing.} Do we encode in the observed or rest frame, and what is the canonical resampling and masking recipe for JWST spectra?
+  \item \textbf{Modality scope.} Spectra only to begin with, or do we bring in imaging and photometry for a multimodal match?
+  \item \textbf{Model variant.} Which \aion size (300M versus larger) given our compute budget, and is there a measurable benefit to the larger models for this task?
+  \item \textbf{Defining ``analogue'' quantitatively.} A latent-distance threshold, an outlier-score threshold, agreement in physical properties, or some combination?
+  \item \textbf{Success criteria.} What result would make this a paper: a clean analogue-versus-redshift trend, a validated catalogue, a head-to-head win over BPT selection, or a definitive ``no analogues beyond $\zsim X$''?
+  \item \textbf{Contaminants.} How do we handle AGN, mergers, and misclassified objects, which \citet{Liang2023_outlier_detection} found dominate the outlier population?
+  \item \textbf{Compute and data volume.} What scale of reference sample and JWST sample is feasible, and where do we store embeddings?
 \end{enumerate}
 
 
 \section{Code and Data Availability} \label{sec:dataavail}
 
-Code will be developed in a public GitHub repository (add link here). The project builds on the
-public \aion weights and tutorial, low-redshift spectra from SDSS and DESI, and JWST spectra from the
-DAWN JWST Archive.
+Code will be developed in a public GitHub repository (add link here). The project builds on the public \aion weights and tutorial, low-redshift spectra from SDSS and DESI, and JWST spectra from the DAWN JWST Archive.
 
 \begin{acknowledgments}
-C.K.J. acknowledges support by Schmidt Sciences under grant 922, and the Princeton Research Computing
-resources at Princeton University, a consortium led by the Princeton Institute for Computational
-Science and Engineering (PICSciE) and the Office of Information Technology's Research Computing. This
-project makes use of data from SDSS and DESI, the DAWN JWST Archive, and the publicly released \aion
-foundation model \citep{Parker2025_AION_omnimodal}.
+C.K.J. acknowledges support by Schmidt Sciences under grant 922, and the Princeton Research Computing resources at Princeton University, a consortium led by the Princeton Institute for Computational Science and Engineering (PICSciE) and the Office of Information Technology's Research Computing. This project makes use of data from SDSS and DESI, the DAWN JWST Archive, and the publicly released \aion foundation model \citep{Parker2025_AION_omnimodal}.
 \end{acknowledgments}
 
 %% Authors can use the Contributor Role Taxonomy (CRediT) at
@@ -357,26 +177,16 @@ foundation model \citep{Parker2025_AION_omnimodal}.
 \section{A short ML glossary} \label{appsec:glossary}
 
 \begin{description}
-  \item[Foundation model] A large network pretrained by self-supervision on broad data, reused for
-        many tasks without task-specific retraining.
-  \item[Embedding, or latent vector] The model's compact numerical summary of an input; the ``latent
-        space'' is the space these vectors live in. Similar objects sit close together.
-  \item[Tokenisation] Converting an input (image, spectrum, scalar) into a sequence of discrete
-        tokens the transformer can read; \aion uses modality-specific tokenisers.
-  \item[Masked modelling] A self-supervised objective: hide part of the token sequence and train the
-        model to predict it, forcing it to learn structure.
-  \item[Frozen encoder] Using a pretrained network purely to produce embeddings, with no further
-        weight updates.
-  \item[Similarity, or nearest-neighbour, search] Finding the inputs whose embeddings are closest to
-        a query embedding; here, the candidate low-redshift analogues.
-  \item[Outlier, or anomaly, score] A number measuring how unlike the reference distribution an
-        object is; a high score means a poor analogue.
-  \item[Normalising flow] A flexible model of a probability density that lets us assign a likelihood
-        to each embedding, used for outlier scoring \citep{Liang2023_outlier_detection}.
-  \item[Out-of-distribution (OOD)] Data unlike anything in training; OOD inputs are exactly what we
-        are trying to identify among high-redshift galaxies.
-  \item[Fine-tuning, or domain adaptation] Updating a pretrained model on new data to reduce a domain
-        gap; an optional, more advanced step here.
+  \item[Foundation model] A large network pretrained by self-supervision on broad data, reused for many tasks without task-specific retraining.
+  \item[Embedding, or latent vector] The model's compact numerical summary of an input; the ``latent space'' is the space these vectors live in. Similar objects sit close together.
+  \item[Tokenisation] Converting an input (image, spectrum, scalar) into a sequence of discrete tokens the transformer can read; \aion uses modality-specific tokenisers.
+  \item[Masked modelling] A self-supervised objective: hide part of the token sequence and train the model to predict it, forcing it to learn structure.
+  \item[Frozen encoder] Using a pretrained network purely to produce embeddings, with no further weight updates.
+  \item[Similarity, or nearest-neighbour, search] Finding the inputs whose embeddings are closest to a query embedding; here, the candidate low-redshift analogues.
+  \item[Outlier, or anomaly, score] A number measuring how unlike the reference distribution an object is; a high score means a poor analogue.
+  \item[Normalising flow] A flexible model of a probability density that lets us assign a likelihood to each embedding, used for outlier scoring \citep{Liang2023_outlier_detection}.
+  \item[Out-of-distribution (OOD)] Data unlike anything in training; OOD inputs are exactly what we are trying to identify among high-redshift galaxies.
+  \item[Fine-tuning, or domain adaptation] Updating a pretrained model on new data to reduce a domain gap; an optional, more advanced step here.
 \end{description}
 
 
